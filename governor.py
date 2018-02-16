@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, yaml, time, urllib2, atexit, ssl
+import sys, os, yaml, time, urllib2, atexit, ssl, signal
 import logging
 
 from helpers.etcd import Etcd
@@ -28,12 +28,17 @@ def wait_for_etcd(message, etcd, postgresql):
             logging.info("waiting on etcd: %s" % message)
             time.sleep(5)
 
+def signalhandler(signum, frame):
+    print('Received ', signum)
+    stop_postgresql(postgresql)
+
 def run(config):
     etcd = Etcd(config["etcd"])
     postgresql = Postgresql(config["postgresql"])
     ha = Ha(postgresql, etcd)
 
     atexit.register(stop_postgresql, postgresql)
+    signal.signal(signal.SIGTERM, signalhandler)
     logging.info("Governor Starting up")
 # is data directory empty?
     if postgresql.data_directory_empty():
