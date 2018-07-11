@@ -73,16 +73,16 @@ class Postgresql:
         if self.version_file_exists():
             try:
                 with open(self.version_file) as f:
-                    return f.read().strip()
+                    return float(f.read().strip())
             except Exception:
                 logger.exception('Failed to read PG_VERSION from %s', self._data_dir)
         return 0
 
     def wal_name(self):
-        return 'wal' if self.postgres_version >= 10 else 'xlog'
+        return 'wal' if self.postgres_version() >= 10 else 'xlog'
 
     def lsn_name(self):
-        return 'lsn' if self.postgres_version >= 10 else 'location'
+        return 'lsn' if self.postgres_version() >= 10 else 'location'
 
     def initialize(self):
         if os.system("initdb %s" % self.initdb_options()) == 0:
