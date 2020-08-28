@@ -85,10 +85,15 @@ def run(config):
             # create replication slots
             if postgresql.is_leader():
                 logging.info("Governor Running: I am the Leader")
-                for node in etcd.get_client_path("/members?recursive=true")["node"]["nodes"]:
-                    member = node["key"].split('/')[-1]
-                    if member != postgresql.name:
+            for node in etcd.members():
+                member = node["hostname"]
+                if member != postgresql.name:
+                    if postgresql.is_leader():
                         postgresql.ensure_replication_slot(
+                            postgresql.replication_slot_name(member)
+                        )
+                    else:
+                        postgresql.drop_replication_slot(
                             postgresql.replication_slot_name(member)
                         )
             etcd.touch_member(postgresql.name, postgresql.connection_string)

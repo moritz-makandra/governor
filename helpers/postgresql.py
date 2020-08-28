@@ -200,6 +200,17 @@ class Postgresql:
             "END IF; "
             "END$$;" % {"slot": slot_name})
 
+    def drop_replication_slot(self, slot_name):
+        self.query(
+            "DO LANGUAGE plpgsql $$DECLARE somevar VARCHAR; "
+            "BEGIN "
+            "SELECT slot_name INTO somevar FROM pg_replication_slots "
+            "WHERE slot_name = '%(slot)s' AND active = 'f' LIMIT 1; "
+            "IF FOUND THEN PERFORM "
+            "pg_drop_replication_slot('%(slot)s'); "
+            "END IF;"
+            "END$$;" % {"slot": slot_name})
+
     def write_pg_hba(self):
         f = open("%s/pg_hba.conf" % self.data_dir, "a")
         f.write("host replication %(username)s %(network)s md5" %
