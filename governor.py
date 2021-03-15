@@ -6,6 +6,7 @@ import logging
 from helpers.etcd import Etcd
 from helpers.postgresql import Postgresql
 from helpers.ha import Ha
+import socket
 
 LOG_LEVEL = logging.DEBUG if os.getenv('DEBUG', None) else logging.INFO
 
@@ -23,7 +24,7 @@ def wait_for_etcd(message, etcd, postgresql):
         try:
             etcd.touch_member(postgresql.name, postgresql.connection_string)
             etcd_ready = True
-        except (urllib2.URLError, ssl.SSLError) as e:
+        except (urllib2.URLError, ssl.SSLError, socket.timeout) as e:
             logging.info(e)
             logging.info("waiting on etcd: %s" % message)
             time.sleep(5)
@@ -99,7 +100,7 @@ def run(config):
             etcd.touch_member(postgresql.name, postgresql.connection_string)
 
             time.sleep(config["loop_wait"])
-        except urllib2.URLError:
+        except (urllib2.URLError, socket.timeout):
             logging.info("Lost connection to etcd, setting no leader and waiting on etcd")
             postgresql.follow_no_leader()
             wait_for_etcd("running in readonly mode; cannot participate in cluster HA without etcd", etcd, postgresql)
